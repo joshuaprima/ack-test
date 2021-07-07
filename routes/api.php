@@ -30,4 +30,8 @@ Route::group(['middleware' => 'auth:users'], function () {
     Route::get('/detail-toko/{id}', [\App\Http\Controllers\Api\TokoController::class, 'getDetailToko']);
     Route::get('/list-toko', [\App\Http\Controllers\Api\TokoController::class, 'getListToko']);
     Route::post('/edit-toko/{id}', [\App\Http\Controllers\Api\TokoController::class, 'editToko']);
+    Route::post('/create-produk/{id}', [\App\Http\Controllers\Api\ProdukController::class, 'createProduk']);
+    Route::get('/detail-produk/{id}', [\App\Http\Controllers\Api\ProdukController::class, 'getDetailProduk']);
+    Route::get('/list-produk', [\App\Http\Controllers\Api\ProdukController::class, 'getListProduk']);
+    Route::post('/edit-produk/{id}', [\App\Http\Controllers\Api\ProdukController::class, 'editProduk']);
 });
