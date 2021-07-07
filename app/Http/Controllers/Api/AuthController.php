@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use \Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use \File;
 
 class AuthController extends Controller
 {
@@ -21,6 +22,7 @@ class AuthController extends Controller
             'phone' => 'required',
             'email' => 'required|email|unique:user,email',
             'password' => 'required|confirmed',
+            'foto' => 'image'
         ];
 
         $messages = [
@@ -32,6 +34,7 @@ class AuthController extends Controller
             'phone.required' => 'Phone number must be filled',
             'password.required' => 'Password must be filled',
             'password.confirmed'=> 'Password is not the same as confirm password',
+            'foto.image' => 'Invalid type of file'
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);
@@ -43,35 +46,77 @@ class AuthController extends Controller
                 'data' => $validator->errors()
             ],400);
         }else{
-            $user = User::create(array_merge(
-                $validator->validated(),
-                ['password' => bcrypt($request->password)]
-            ));
+            if (!empty($request->foto)){
+                $file = $request->file('foto');
+                $filename = date('YmdHis').'-'.$request->name.'-'.$file->getClientOriginalName();
+                $folder = 'images/user';
 
-            if ($user){
-                $basic  = new \Vonage\Client\Credentials\Basic("e3d7a938", "zrb9tNUNLsuYBJDz");
-                $client = new \Vonage\Client($basic);
+                if ($file->move($folder, $filename)){
+                    $user = User::create(array_merge(
+                        $validator->validated(),
+                        [
+                            'password' => bcrypt($request->password),
+                            'foto' => $folder.'/'.$filename
+                        ]
+                    ));
 
-                $response = $client->sms()->send(
-                    new \Vonage\SMS\Message\SMS($request->phone, 'ACK', 'Your account has been registered! Thank you.')
-                );
+                    if ($user){
+                        $basic  = new \Vonage\Client\Credentials\Basic("e3d7a938", "zrb9tNUNLsuYBJDz");
+                        $client = new \Vonage\Client($basic);
 
-                if ($response->current()->getStatus() == 0){
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'User created and message sent!'
-                    ],200);
+                        $response = $client->sms()->send(
+                            new \Vonage\SMS\Message\SMS($request->phone, 'ACK', 'Your account has been registered! Thank you.')
+                        );
+
+                        if ($response->current()->getStatus() == 0){
+                            return response()->json([
+                                'success' => true,
+                                'message' => 'User created and message sent!'
+                            ],200);
+                        }else{
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Failed to send message!'
+                            ],$response->current()->getStatus());
+                        }
+                    }else{
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to create user!'
+                        ],401);
+                    }
+                }
+            }else{
+                $user = User::create(array_merge(
+                    $validator->validated(),
+                        ['password' => bcrypt($request->password),]
+                ));
+
+                if ($user){
+                    $basic  = new \Vonage\Client\Credentials\Basic("e3d7a938", "zrb9tNUNLsuYBJDz");
+                    $client = new \Vonage\Client($basic);
+
+                    $response = $client->sms()->send(
+                        new \Vonage\SMS\Message\SMS($request->phone, 'ACK', 'Your account has been registered! Thank you.')
+                    );
+
+                    if ($response->current()->getStatus() == 0){
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'User created and message sent!'
+                        ],200);
+                    }else{
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to send message!'
+                        ],$response->current()->getStatus());
+                    }
                 }else{
                     return response()->json([
                         'success' => false,
-                        'message' => 'Failed to send message!'
-                    ],$response->current()->getStatus());
+                        'message' => 'Failed to create user!'
+                    ],401);
                 }
-            }else{
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to create user!'
-                ],401);
             }
         }
     }

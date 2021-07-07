@@ -26,6 +26,7 @@ class User extends Authenticatable implements JWTSubject
         'username',
         'email',
         'password',
+        'foto'
     ];
 
     /**
@@ -65,5 +66,9 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function toko(){
+        return $this->hasMany(Toko::class, 'userId');
     }
 }
